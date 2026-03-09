@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Recursion by RSCOE</title>
+
+<style>
+
+body{
+  font-family: Arial, sans-serif;
+  background:#f5f5f5;
+  text-align:center;
+}
+
+header{
+  background:#222;
+  color:white;
+  padding:20px;
+}
+
+#dashboard{
+  background:white;
+  width:400px;
+  margin:50px auto;
+  padding:30px;
+  border-radius:10px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.1);
+}
+
+button{
+  display:block;
+  width:80%;
+  margin:12px auto;
+  padding:12px;
+  border:none;
+  border-radius:6px;
+  background:#1976d2;
+  color:white;
+  font-size:16px;
+  cursor:pointer;
+}
+
+button:hover{
+  background:#125ea8;
+}
+
+.logout{
+  background:#d32f2f;
+}
+
+.logout:hover{
+  background:#a52424;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+<h1>Recursion by RSCOE</h1>
+<p>Quiz Dashboard</p>
+</header>
+
+<div id="dashboard">
+
+<h2>Welcome</h2>
+
+<button onclick="startQuiz()">Start Quiz</button>
+
+<button onclick="viewLeaderboard()">Leaderboard</button>
+
+<button onclick="viewResult()">My Result</button>
+
+<button class="logout" onclick="logout()">Logout</button>
+
+</div>
+
+<script>
+
+const token = localStorage.getItem("token")
+
+// 🔐 authentication protection
+if(!token){
+  window.location.href = "login.html"
+}
+
+const round = 1
+
+
+
+// START QUIZ
+async function startQuiz(){
+
+  const res = await fetch(`/api/quiz/start/${round}`,{
+    method:"POST",
+    headers:{
+  "Authorization": `Bearer ${token}`
+}
+  })
+
+  const data = await res.json()
+
+  if(data.alreadyStarted){
+  window.location.href = "quiz.html"
+  return
+}
+
+if(!res.ok){
+  alert(data.msg)
+  return
+}
+
+window.location.href = "quiz.html"
+
+}
+
+
+
+// VIEW LEADERBOARD
+function viewLeaderboard(){
+
+  window.location.href = `leaderboard.html?round=${round}`
+
+}
+
+
+
+// VIEW RESULT
+function viewResult(){
+
+  window.location.href = `result.html?round=${round}`
+
+}
+
+
+
+// LOGOUT
+function logout(){
+
+  localStorage.removeItem("token")
+
+  window.location.href = "login.html"
+
+}
+
+</script>
+
+</body>
+</html>

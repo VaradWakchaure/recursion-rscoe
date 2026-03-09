@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Recursion by RSCOE</title>
+
+<style>
+
+body{
+  font-family: Arial, sans-serif;
+  background:#f5f5f5;
+  text-align:center;
+}
+
+header{
+  background:#222;
+  color:white;
+  padding:20px;
+}
+
+#leaderboard-box{
+  background:white;
+  width:500px;
+  margin:40px auto;
+  padding:30px;
+  border-radius:10px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.1);
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+th, td{
+  padding:10px;
+  border-bottom:1px solid #ddd;
+}
+
+th{
+  background:#1976d2;
+  color:white;
+}
+
+button{
+  margin-top:20px;
+  padding:10px 20px;
+  border:none;
+  border-radius:6px;
+  background:#1976d2;
+  color:white;
+  cursor:pointer;
+}
+
+button:hover{
+  background:#125ea8;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+<h1>Recursion by RSCOE</h1>
+<p>Leaderboard</p>
+</header>
+
+<div id="leaderboard-box">
+
+<h2>Top Participants</h2>
+
+<table>
+
+<thead>
+<tr>
+<th>Rank</th>
+<th>Name</th>
+<th>Score</th>
+</tr>
+</thead>
+
+<tbody id="leaderboard-body">
+</tbody>
+
+</table>
+
+<button onclick="goDashboard()">Back to Dashboard</button>
+
+</div>
+
+<script>
+
+const token = localStorage.getItem("token")
+
+// authentication protection
+if(!token){
+  window.location.href = "login.html"
+}
+
+const params = new URLSearchParams(window.location.search)
+const round = params.get("round") || 1
+
+
+
+async function loadLeaderboard(){
+
+  try{
+
+    const res = await fetch(`/api/quiz/leaderboard/${round}`,{
+      headers:{
+        "Authorization": `Bearer ${token}`
+      }
+    })
+
+    const data = await res.json()
+
+    if(!res.ok){
+      alert(data.msg)
+      return
+    }
+
+    const table = document.getElementById("leaderboard-body")
+
+    table.innerHTML = ""
+
+    data.forEach(player => {
+
+      table.innerHTML += `
+        <tr>
+          <td>${player.rank}</td>
+          <td>${player.name}</td>
+          <td>${player.score}</td>
+        </tr>
+      `
+    })
+
+  }
+  catch(err){
+    alert("Failed to load leaderboard")
+  }
+
+}
+
+loadLeaderboard()
+
+
+
+function goDashboard(){
+  window.location.href = "dashboard.html"
+}
+
+</script>
+
+</body>
+</html>

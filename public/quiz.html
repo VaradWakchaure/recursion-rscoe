@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Recursion by RSCOE</title>
+
+<style>
+
+body{
+  font-family: Arial, sans-serif;
+  background:#f5f5f5;
+  text-align:center;
+}
+
+header{
+  background:#222;
+  color:white;
+  padding:15px;
+}
+
+#quiz-container{
+  background:white;
+  width:500px;
+  margin:30px auto;
+  padding:25px;
+  border-radius:10px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.1);
+}
+
+#timer{
+  color:#d32f2f;
+  font-size:22px;
+}
+
+button{
+  padding:10px 18px;
+  margin:8px;
+  border:none;
+  border-radius:6px;
+  background:#1976d2;
+  color:white;
+  cursor:pointer;
+}
+
+button:hover{
+  background:#125ea8;
+}
+#palette{
+  width:500px;
+  margin:20px auto;
+  display:grid;
+  grid-template-columns: repeat(5,1fr);
+  gap:8px;
+}
+
+.palette-btn{
+  padding:10px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.unanswered{
+  background:#e0e0e0;
+}
+
+.answered{
+  background:#4caf50;
+  color:white;
+}
+
+.current{
+  background:#1976d2;
+  color:white;
+}
+
+.review{
+  background:#fbc02d;
+  color:black;
+}
+
+#progress{
+  margin:15px;
+  font-size:18px;
+  font-weight:bold;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+  <h1>Recursion by RSCOE</h1>
+  <p>Competitive Programming & Quiz Platform</p>
+</header>
+
+<h1>Quiz</h1>
+
+<h2 id="timer"></h2>
+<div id="progress">
+  Answered: <span id="answered-count">0</span> |
+  Marked: <span id="marked-count">0</span> |
+  Unanswered: <span id="unanswered-count">0</span>
+</div>
+<h3>Question Palette</h3>
+<div id="palette"></div>
+<div id="quiz-container">
+
+<h3 id="question-number"></h3>
+
+<p id="question-text"></p>
+
+<div id="options"></div>
+
+</div>
+
+<br>
+
+<button onclick="prevQuestion()">Previous</button>
+<button onclick="nextQuestion()">Next</button>
+<button onclick="markForReview()">Mark for Review</button>
+<button onclick="submitQuiz()">Submit Quiz</button>
+
+<script>
+
+let markedForReview = {}
+
+const token = localStorage.getItem("token")
+if(!token){
+  window.location.href = "login.html"
+}
+const round = 1
+
+let questions = []
+let currentQuestion = 0
+let answers = {}
+
+
+
+// LOAD QUESTIONS
+async function loadQuestions(){
+
+  const res = await fetch(`/api/quiz/questions/${round}`,{
+    headers:{
+    "Authorization": `Bearer ${token}`
+  }
+  })
+
+  const data = await res.json()
+
+if(!res.ok){
+  alert(data.msg)
+
+  // redirect to result page
+  window.location.href = `result.html?round=${round}`
+  return
+}
+
+questions = data.questions
+
+startTimer(data.remainingTime)
+
+  showQuestion()
+  updateProgress()
+
+}
+
+loadQuestions()
+
+
+
+// SHOW QUESTION
+function showQuestion(){
+
+  const q = questions[currentQuestion]
+
+  document.getElementById("question-number").innerText =
+    `Question ${currentQuestion+1} / ${questions.length}`
+
+  document.getElementById("question-text").innerText =
+    q.question
+
+  const optionsDiv = document.getElementById("options")
+  optionsDiv.innerHTML = ""
+
+  q.options.forEach(option => {
+
+    const checked =
+      answers[q._id] === option ? "checked" : ""
+
+    optionsDiv.innerHTML += `
+      <label>
+        <input type="radio"
+        name="option"
+        value="${option}"
+        ${checked}
+        onclick="saveAnswer('${q._id}','${option}')">
+        ${option}
+      </label><br>
+    `
+  })
+  renderPalette()
+
+}
+
+
+
+// SAVE ANSWER
+function saveAnswer(questionId, answer){
+
+  answers[questionId] = answer
+
+  renderPalette()
+  updateProgress()
+
+}
+
+
+
+// NEXT QUESTION
+function nextQuestion(){
+
+  if(currentQuestion < questions.length - 1){
+    currentQuestion++
+    showQuestion()
+  }
+
+}
+
+
+
+// PREVIOUS QUESTION
+function prevQuestion(){
+
+  if(currentQuestion > 0){
+    currentQuestion--
+    showQuestion()
+  }
+
+}
+
+
+
+// TIMER
+function startTimer(remainingTime){
+
+  let time = Math.floor(remainingTime / 1000)
+
+  const interval = setInterval(()=>{
+
+    const minutes = Math.floor(time / 60)
+    const seconds = time % 60
+
+    document.getElementById("timer").innerText =
+      `Time Left: ${minutes}:${seconds.toString().padStart(2,'0')}`
+
+    if(time <= 0){
+      clearInterval(interval)
+      submitQuiz()
+    }
+
+    time--
+
+  },1000)
+
+}
+
+
+
+// SUBMIT QUIZ
+async function submitQuiz(){
+
+  const formattedAnswers =
+    Object.entries(answers).map(([questionId,answer])=>({
+      questionId,
+      answer
+    }))
+
+  const res = await fetch("/api/quiz/submit",{
+  method:"POST",
+  headers:{
+    "Content-Type":"application/json",
+    "Authorization": `Bearer ${token}`
+
+  },
+    body:JSON.stringify({
+      round,
+      answers:formattedAnswers
+    })
+  })
+
+  const data = await res.json()
+
+  alert(`Your score: ${data.score}`)
+
+  window.location.href = `result.html?round=${round}`
+
+}
+
+
+
+// TAB SWITCH DETECTION
+document.addEventListener("visibilitychange", async () => {
+
+  if(document.hidden){
+
+    const res = await fetch("/api/quiz/tab-switch",{
+  method:"POST",
+  headers:{
+    "Content-Type":"application/json",
+    "Authorization": `Bearer ${token}`
+
+  },
+      body:JSON.stringify({round})
+    })
+
+    const data = await res.json()
+
+    alert(data.msg)
+
+  }
+
+})
+
+
+
+// AUTO SAVE EVERY 10 SECONDS
+setInterval(async () => {
+
+  await fetch("/api/quiz/save-answers",{
+  method:"POST",
+  headers:{
+    "Content-Type":"application/json",
+    "Authorization": `Bearer ${token}`
+
+  },
+    body:JSON.stringify({
+      round,
+      answers:Object.entries(answers).map(([questionId,answer])=>({
+        questionId,
+        answer
+      }))
+    })
+  })
+
+},10000)
+
+
+
+// DISABLE RIGHT CLICK
+document.addEventListener("contextmenu", e => e.preventDefault())
+
+function renderPalette(){
+
+  const palette = document.getElementById("palette")
+  palette.innerHTML = ""
+
+  questions.forEach((q,index)=>{
+
+    let className = "palette-btn unanswered"
+
+    if(markedForReview[q._id]){
+      className = "palette-btn review"
+    }
+
+    if(answers[q._id]){
+      className = "palette-btn answered"
+    }
+
+    if(index === currentQuestion){
+      className = "palette-btn current"
+    }
+
+    palette.innerHTML += `
+      <button
+        class="${className}"
+        onclick="goToQuestion(${index})">
+        ${index+1}
+      </button>
+    `
+  })
+
+}
+function goToQuestion(index){
+
+  currentQuestion = index
+
+  showQuestion()
+
+}
+
+function markForReview(){
+
+  const q = questions[currentQuestion]
+
+  if(markedForReview[q._id]){
+    delete markedForReview[q._id]
+  } else {
+    markedForReview[q._id] = true
+  }
+
+  renderPalette()
+  updateProgress()
+
+}
+
+function updateProgress(){
+
+  let answered = 0
+  let marked = 0
+
+  questions.forEach(q => {
+
+    if(answers[q._id]){
+      answered++
+    }
+
+    if(markedForReview[q._id]){
+      marked++
+    }
+
+  })
+
+  const unanswered = questions.length - answered
+
+  document.getElementById("answered-count").innerText = answered
+  document.getElementById("marked-count").innerText = marked
+  document.getElementById("unanswered-count").innerText = unanswered
+
+}
+
+</script>
+
+</body>
+</html>

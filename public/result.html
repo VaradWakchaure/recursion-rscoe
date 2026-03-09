@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Recursion by RSCOE</title>
+
+<style>
+
+body{
+  font-family: Arial, sans-serif;
+  background:#f5f5f5;
+  text-align:center;
+}
+
+header{
+  background:#222;
+  color:white;
+  padding:20px;
+}
+
+#result-box{
+  background:white;
+  width:350px;
+  margin:50px auto;
+  padding:30px;
+  border-radius:10px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.1);
+}
+
+.result-item{
+  font-size:18px;
+  margin:15px 0;
+}
+
+button{
+  padding:10px 20px;
+  margin-top:20px;
+  border:none;
+  border-radius:6px;
+  background:#1976d2;
+  color:white;
+  cursor:pointer;
+}
+
+button:hover{
+  background:#125ea8;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+<h1>Recursion by RSCOE</h1>
+<p>Your Quiz Result</p>
+</header>
+
+<div id="result-box">
+
+<h2>Result</h2>
+
+<div class="result-item">
+Score: <span id="score">Loading...</span>
+</div>
+
+<div class="result-item">
+Rank: <span id="rank">Loading...</span>
+</div>
+
+<div class="result-item">
+Participants: <span id="participants">Loading...</span>
+</div>
+
+<button onclick="goDashboard()">Back to Dashboard</button>
+
+</div>
+
+<script>
+
+const token = localStorage.getItem("token")
+
+// authentication protection
+if(!token){
+  window.location.href = "login.html"
+}
+
+const params = new URLSearchParams(window.location.search)
+
+const round = params.get("round") || 1
+
+
+
+async function loadResult(){
+
+  try{
+
+    const res = await fetch(`/api/quiz/result/${round}`,{
+      headers:{
+        "Authorization": `Bearer ${token}`
+      }
+    })
+
+    const data = await res.json()
+
+    if(data.msg === "Quiz not submitted yet"){
+      window.location.href = "quiz.html"
+      return
+    }
+
+    if(!res.ok){
+      alert(data.msg)
+      return
+    }
+
+    document.getElementById("score").innerText = data.score
+    document.getElementById("rank").innerText = data.rank
+    document.getElementById("participants").innerText = data.participants
+
+  }
+  catch(err){
+    alert("Failed to load result")
+  }
+
+}
+
+loadResult()
+
+
+
+function goDashboard(){
+  window.location.href = "dashboard.html"
+}
+
+</script>
+
+</body>
+</html>
