@@ -21,7 +21,7 @@ app.use("/api/quiz", quizRoutes)
 app.use("/api/admin", adminRoutes)
 
 app.get("/", (req,res)=>{
-  res.send("Recursion by RSCOE backend running 🚀")
+  res.sendFile(__dirname + "/public/login.html")
 })
 
 const PORT = process.env.PORT || 5000
