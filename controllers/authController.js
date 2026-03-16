@@ -35,7 +35,7 @@ exports.register = async (req,res)=>{
   // create verification link
   const verificationLink =
    `${process.env.BASE_URL}/api/auth/verify/${verificationToken}`
-
+console.log("Attempting to send email to:", email)
   // send verification email
   await transporter.sendMail({
    from: process.env.EMAIL_USER,
@@ -47,10 +47,11 @@ exports.register = async (req,res)=>{
     <a href="${verificationLink}">Verify Email</a>
    `
   })
-
+console.log("Email sent successfully")
   res.json({msg:"Registration successful. Check your email to verify your account."})
 
  }
+ 
  catch(err){
   console.error(err)
   res.status(500).json({msg:"Server error"})
