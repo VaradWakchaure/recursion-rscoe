@@ -131,11 +131,15 @@ const token = localStorage.getItem("token")
 if(!token){
   window.location.href = "login.html"
 }
+
 const round = 1
 
 let questions = []
 let currentQuestion = 0
 let answers = {}
+
+let warningCount = 0
+let lastViolation = 0
 
 
 
@@ -144,23 +148,21 @@ async function loadQuestions(){
 
   const res = await fetch(`/api/quiz/questions/${round}`,{
     headers:{
-    "Authorization": `Bearer ${token}`
-  }
+      "Authorization": `Bearer ${token}`
+    }
   })
 
   const data = await res.json()
 
-if(!res.ok){
-  alert(data.msg)
+  if(!res.ok){
+    alert(data.msg)
+    window.location.href = `result.html?round=${round}`
+    return
+  }
 
-  // redirect to result page
-  window.location.href = `result.html?round=${round}`
-  return
-}
+  questions = data.questions
 
-questions = data.questions
-
-startTimer(data.remainingTime)
+  startTimer(data.remainingTime)
 
   showQuestion()
   updateProgress()
@@ -201,6 +203,7 @@ function showQuestion(){
       </label><br>
     `
   })
+
   renderPalette()
 
 }
@@ -279,12 +282,11 @@ async function submitQuiz(){
     }))
 
   const res = await fetch("/api/quiz/submit",{
-  method:"POST",
-  headers:{
-    "Content-Type":"application/json",
-    "Authorization": `Bearer ${token}`
-
-  },
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization": `Bearer ${token}`
+    },
     body:JSON.stringify({
       round,
       answers:formattedAnswers
@@ -301,26 +303,53 @@ async function submitQuiz(){
 
 
 
+// HANDLE VIOLATION
+async function handleViolation(){
+
+  const now = Date.now()
+
+  if(now - lastViolation < 2000) return
+
+  lastViolation = now
+  warningCount++
+
+  const res = await fetch("/api/quiz/tab-switch",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization": `Bearer ${token}`
+    },
+    body:JSON.stringify({round})
+  })
+
+  const data = await res.json()
+
+  alert(`Warning ${warningCount}/3: ${data.msg}`)
+
+  if(warningCount >= 3){
+    alert("Quiz auto-submitted due to multiple window switches.")
+    submitQuiz()
+  }
+
+}
+
+
+
 // TAB SWITCH DETECTION
-document.addEventListener("visibilitychange", async () => {
+document.addEventListener("visibilitychange", () => {
 
   if(document.hidden){
-
-    const res = await fetch("/api/quiz/tab-switch",{
-  method:"POST",
-  headers:{
-    "Content-Type":"application/json",
-    "Authorization": `Bearer ${token}`
-
-  },
-      body:JSON.stringify({round})
-    })
-
-    const data = await res.json()
-
-    alert(data.msg)
-
+    handleViolation()
   }
+
+})
+
+
+
+// WINDOW SWITCH DETECTION (ALT+TAB / CLICK OTHER APP)
+window.addEventListener("blur", () => {
+
+  handleViolation()
 
 })
 
@@ -330,12 +359,11 @@ document.addEventListener("visibilitychange", async () => {
 setInterval(async () => {
 
   await fetch("/api/quiz/save-answers",{
-  method:"POST",
-  headers:{
-    "Content-Type":"application/json",
-    "Authorization": `Bearer ${token}`
-
-  },
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization": `Bearer ${token}`
+    },
     body:JSON.stringify({
       round,
       answers:Object.entries(answers).map(([questionId,answer])=>({
@@ -351,6 +379,8 @@ setInterval(async () => {
 
 // DISABLE RIGHT CLICK
 document.addEventListener("contextmenu", e => e.preventDefault())
+
+
 
 function renderPalette(){
 
@@ -383,13 +413,17 @@ function renderPalette(){
   })
 
 }
+
+
+
 function goToQuestion(index){
 
   currentQuestion = index
-
   showQuestion()
 
 }
+
+
 
 function markForReview(){
 
@@ -405,6 +439,8 @@ function markForReview(){
   updateProgress()
 
 }
+
+
 
 function updateProgress(){
 
