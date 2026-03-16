@@ -1,9 +1,11 @@
 const bcrypt = require("bcryptjs")
 const jwt = require("jsonwebtoken")
 const crypto = require("crypto")
+const { Resend } = require("resend")
 
 const User = require("../models/User")
-const transporter = require("../config/mailer")
+
+const resend = new Resend(process.env.RESEND_API_KEY)
 
 exports.register = async (req,res)=>{
 
@@ -35,28 +37,31 @@ exports.register = async (req,res)=>{
   // create verification link
   const verificationLink =
    `${process.env.BASE_URL}/api/auth/verify/${verificationToken}`
-   console.log("Verification link:", verificationLink)
-console.log("About to send email using:", process.env.EMAIL_USER)
-  // send verification email
-  await transporter.sendMail({
-   from: process.env.EMAIL_USER,
-   to: email,
-   subject: "Verify your email - Recursion by RSCOE",
-   html: `
-    <h2>Email Verification</h2>
-    <p>Please click the link below to verify your account:</p>
-    <a href="${verificationLink}">Verify Email</a>
-   `
+
+  console.log("Verification link:", verificationLink)
+
+  // send verification email using Resend
+  await resend.emails.send({
+    from: "onboarding@resend.dev",
+    to: email,
+    subject: "Verify your email - Recursion by RSCOE",
+    html: `
+      <h2>Email Verification</h2>
+      <p>Please click the link below to verify your account:</p>
+      <a href="${verificationLink}">Verify Email</a>
+    `
   })
-console.log("Email sent successfully")
+
+  console.log("Email sent successfully")
+
   res.json({msg:"Registration successful. Check your email to verify your account."})
 
  }
  
  catch(err){
- console.error("REGISTER ERROR:", err)
- res.status(500).json({msg:"Server error"})
-}
+  console.error("REGISTER ERROR:", err)
+  res.status(500).json({msg:"Server error"})
+ }
 
 }
 
@@ -97,6 +102,7 @@ exports.login = async (req,res)=>{
  }
 
 }
+
 
 // email verification controller
 exports.verifyEmail = async (req,res)=>{
