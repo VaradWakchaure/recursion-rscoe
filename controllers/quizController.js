@@ -4,7 +4,7 @@ const QuizSession = require("../models/QuizSession")
 const QuizRound = require("../models/QuizRound")
 
 const QUIZ_TIME_LIMIT = 15 * 60 * 1000 // 15 minutes
-const QUESTION_LIMIT = 20
+const QUESTION_LIMIT = 25
 
 
 
